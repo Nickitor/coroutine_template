@@ -12,11 +12,21 @@ class MainActivity : AppCompatActivity() {
 
         lifecycleScope.launch(Dispatchers.Default) {
             doWork()
+            val result: Deferred<String> = async {
+                getData()
+            }
+            println(result.await())
+            doWork()
         }
     }
 
-    suspend fun doWork() {
+    private suspend fun doWork() {
         delay((500L..5000L).random())
-        println("Done!")
+        println("Done some work!")
+    }
+
+    suspend fun getData(): String {
+        delay((500L..5000L).random())
+        return "Get some Data!"
     }
 }
