@@ -7,7 +7,8 @@ import kotlinx.coroutines.*
 
 class MainActivity : AppCompatActivity() {
 
-    val handler = CoroutineExceptionHandler { _, exception ->
+    // Обрабатывает все необработанные исключения подобно uncaughtExceptionHandler
+    private val handler = CoroutineExceptionHandler { _, exception ->
         println("CoroutineExceptionHandler got $exception")
     }
 
@@ -17,11 +18,12 @@ class MainActivity : AppCompatActivity() {
 
         val coroutine: Job = lifecycleScope.launch(Dispatchers.Default + handler) {
             try {
+                // По истечении времени выбрасывает исключение TimeoutCancellationException
+                // - наследник CancellationException
                 withTimeout(2000) {
                     if (getData().contains("Some Data!"))
                         throw IndexOutOfBoundsException()
                 }
-                doWork()
                 val data: Deferred<List<String>> = async {
                     getData()
                 }
@@ -34,8 +36,11 @@ class MainActivity : AppCompatActivity() {
                 if (isActive) {
                     doWork()
                 }
+                // catch (e: Exception) { Не работает
+                //     println("Catch")
+                // }
             } finally {
-                withContext(NonCancellable) {
+                withContext(NonCancellable) { // Позволяет выполнить единый неотменяемый блок
                     println("exception!")
                     delay(1000)
                     println("exception2!")
