@@ -6,27 +6,52 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.*
 
 class MainActivity : AppCompatActivity() {
+
+    val handler = CoroutineExceptionHandler { _, exception ->
+        println("CoroutineExceptionHandler got $exception")
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        lifecycleScope.launch(Dispatchers.Default) {
-            doWork()
-            val result: Deferred<String> = async {
-                getData()
+        val coroutine: Job = lifecycleScope.launch(Dispatchers.Default + handler) {
+            try {
+                withTimeout(2000) {
+                    if (getData().contains("Some Data!"))
+                        throw IndexOutOfBoundsException()
+                }
+                doWork()
+                val data: Deferred<List<String>> = async {
+                    getData()
+                }
+                if (data.await().contains("Some Data!")) {
+                    println("Data error!")
+                    cancel()
+                } else {
+                    println("Data received")
+                }
+                if (isActive) {
+                    doWork()
+                }
+            } finally {
+                withContext(NonCancellable) {
+                    println("exception!")
+                    delay(1000)
+                    println("exception2!")
+                }
             }
-            println(result.await())
-            doWork()
         }
     }
 
     private suspend fun doWork() {
-        delay((500L..5000L).random())
+        delay(1000L)
         println("Done some work!")
     }
 
-    suspend fun getData(): String {
-        delay((500L..5000L).random())
-        return "Get some Data!"
+    private suspend fun getData(): List<String> {
+        delay(1000L)
+        println("Data sent")
+        return List(5) { "Some Data!" }
     }
 }
